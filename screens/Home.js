@@ -1,28 +1,141 @@
-import React from 'react'
-import {Text,StyleSheet, ScrollView} from 'react-native'
+import React, {useState, useEffect} from 'react'
+import { StyleSheet, ScrollView} from 'react-native'
+import {
+    List,
+    ListItem,
+    Left,
+    Text,
+    Button,
+    Icon, 
+    Body, 
+    Right,
+    CheckBox,
+    Title,
+    H1,
+    Fab,
+    Subtitle,
+    Container,
+    Spinner
+} from 'native-base'
 
-import {Fab,Icon  } from "native-base";
-import { NavigationContainer } from '@react-navigation/native';
+import AsyncStorage from '@react-native-community/async-storage';
+import {useIsFocused} from '@react-navigation/native'
+
 const Home = ({navigation, route}) => {
+    const [listOfSeasons, setListOfSeasons] = useState([])
+    const [loading, setLoading] = useState(false)
+
+    const isFocused = useIsFocused()
+
+    const getList = async () => {
+        setLoading(true)
+
+        const storedValue = await AsyncStorage.getItem('@season_list');
+
+        if (!storedValue) {
+            setListOfSeasons([])
+        }
+
+        const list = JSON.parse(storedValue)
+        setListOfSeasons(list)
+
+        setLoading(false)
+
+    }
+
+    const deleteSeason = async (id) => {
+        const newList = await listOfSeasons.filter((list) => list.id !== id)
+        await AsyncStorage.setItem('@season_list', JSON.stringify(newList));
+
+        setListOfSeasons(newList)
+    }
+
+    const markComplete = async (id) => {
+        const newArr = listOfSeasons.map((list) => {
+            if (list.id == id) {
+                list.isWatched = !list.isWatched
+            }
+            return list
+        })
+
+        await AsyncStorage.setItem('@season_list', JSON.stringify(newArr))
+        setListOfSeasons(newArr)
+    }
+
+    useEffect(() => {
+        getList();
+    }, [isFocused])
+
+    if (loading) {
+        return(
+            <Container style={styles.container}>
+                <Spinner color="#00b7c2" />
+            </Container>
+        )
+    }
 
     return(
-        <ScrollView contentContainerStyle = {styles.container}>
-        
-        <Text>List of seasons goes here</Text>
-        <Fab
-        style={{backgroundColor: "#5067FF"}}
-        position="bottomRight"
-        onPress={() => navigation.navigate('Add')}
+        <ScrollView contentContainerStyle={styles.container}>
+            {listOfSeasons.length == 0 ? (
+                <Container style={styles.container}>
+                    <H1 style={styles.heading}>
+                        Watchlist is empty. Please add a season
+                    </H1>
+                </Container>
+            ) : (
+                <>
+                <H1 style={styles.heading}>Next series to watch</H1>
+                <List>
+                    {listOfSeasons.map((season) => (
+                        <ListItem key={season.id} style={styles.listItem} noBorder>
+                        <Left>
+                            <Button
+                            style={styles.actionButton}
+                            danger
+                            onPress={() => deleteSeason(season.id)}
+                            >
+                                <Icon name="trash" active />
+                            </Button>
+                            <Button
+                            style={styles.actionButton}
+                            onPress={() => {
+                                navigation.navigate('Edit', {season})
+                            }}
+                            >
+                                <Icon active name="edit" type="Feather" />
+                            </Button>
+                        </Left>
+                        <Body>
+                    <Title style={styles.seasonName}>{season.name}</Title>
+                            <Text  note> {season.totalNoSeason} seasons to watch</Text>
+                        </Body>
+                        <Right>
+                            <CheckBox
+                            checked={season.isWatched}
+                            onPress={() => markComplete(season.id)}
+                            />
+                        </Right>
+                    </ListItem>
+                    ))}
+                </List>
+                </>
+            )}
 
-        >
-
-          <Icon name="add"></Icon>
-        </Fab>
+            
+            
+            
+            <Fab
+            style={{backgroundColor: "#5067FF"}}
+            position="bottomRight"
+            onPress={() => navigation.navigate('Add')}
+            >
+                <Icon name="add" />
+            </Fab>
         </ScrollView>
     )
 }
 
-export default Home
+export default Home;
 
 const styles = StyleSheet.create({
     emptyContainer: {
@@ -32,7 +145,7 @@ const styles = StyleSheet.create({
       alignItems: 'center',
     },
     container: {
-      // backgroundColor: '#1b262c',
+      backgroundColor: '#1b262c',
       flex: 1,
     },
     heading: {
