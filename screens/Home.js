@@ -2,6 +2,7 @@ import React from 'react'
 import {Text,StyleSheet, ScrollView} from 'react-native'
 
 import {Fab,Icon  } from "native-base";
+import { NavigationContainer } from '@react-navigation/native';
 const Home = ({navigation, route}) => {
 
     return(
